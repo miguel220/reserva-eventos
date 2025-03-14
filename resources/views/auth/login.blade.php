@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.app-login')
 
 @section('content')
 <div class="min-h-screen flex items-center justify-center bg-gray-100">

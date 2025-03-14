@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 
@@ -17,7 +18,7 @@ class RouteServiceProvider extends ServiceProvider
      *
      * @var string
      */
-    public const HOME = '/teste2';
+    public const HOME = '/escalas/consultar';
 
     /**
      * The controller namespace for the application.
@@ -46,6 +47,17 @@ class RouteServiceProvider extends ServiceProvider
             Route::middleware('web')
                 ->namespace($this->namespace)
                 ->group(base_path('routes/web.php'));
+        });
+
+        // Middleware global para forçar logout na raiz
+        Route::middleware('web')->group(function () {
+            Route::get('/', function () {
+                if (Auth::check()) {
+                    Auth::logout();
+                    return redirect()->route('login')->with('message', 'Sessão encerrada. Faça login novamente.');
+                }
+                return view('welcome');
+            });
         });
     }
 

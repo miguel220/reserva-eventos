@@ -11,24 +11,11 @@ use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Login Controller
-    |--------------------------------------------------------------------------
-    |
-    | This controller handles authenticating users for the application and
-    | redirecting them to your home screen. The controller uses a trait
-    | to conveniently provide its functionality to your applications.
-    |
-    */
 
     use AuthenticatesUsers;
 
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
+    protected $redirectTo = \App\Providers\RouteServiceProvider::HOME;
+
     public function __construct()
     {
         $this->middleware('guest')->except('logout');
@@ -45,10 +32,17 @@ class LoginController extends Controller
 
     protected function authenticated(Request $request, $user)
     {
-        if ($user->is_admin) {
-            return redirect()->route('admin.dashboard'); // Força o redirect para o dashboard
+        if (!$user->hasVerifiedEmail()) {
+            $attempts = session()->get('email_verification_attempts', 0);
+            $waitTime = $this->calculateWaitTime($attempts);
+
+            session(['email_verification_attempts' => $attempts + 1]);
+            session(['wait_time' => $waitTime]);
+
+            return redirect()->route('verification.notice')->with('wait_time', $waitTime);
         }
-        return redirect(\App\Providers\RouteServiceProvider::HOME); // Usuários comuns vão para /teste2
+
+        return redirect()->intended($this->redirectTo);
     }
 
     public function logout(Request $request)
@@ -58,5 +52,11 @@ class LoginController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/login');
+    }
+
+    protected function calculateWaitTime($attempts)
+    {
+        // Tempo inicial de 30 segundos, dobrando a cada tentativa
+        return pow(2, $attempts) * 30; // 30s, 60s, 120s, etc.
     }
 }

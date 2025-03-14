@@ -4,10 +4,6 @@
 <div class="p-6">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-semibold">Eventos</h1>
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-            <button type="submit" class="text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-300 font-medium rounded-full text-sm px-5 py-2.5 text-center me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">Sair</button>
-        </form>
     </div>
 
     <div class="mb-6">
@@ -48,7 +44,23 @@
                             @endif
                         </p>
                         <p class="text-gray-600 mb-2">
-                            Tipo: {{ $evento->is_paid ? 'Pago (R$ ' . number_format($evento->price, 2, ',', '.') . ')' : 'Gratuito' }}
+                            Preço: 
+                            @if ($evento->is_paid)
+                                @if ($evento->promo_price && $evento->promo_start_date && $evento->promo_end_date && now()->between($evento->promo_start_date, $evento->promo_end_date))
+                                    <span class="text-green-600">R$ {{ number_format($evento->promo_price, 2, ',', '.') }} (Promoção até {{ $evento->promo_end_date->format('d/m/Y H:i') }})</span>
+                                    <br><span class="text-gray-500 line-through">R$ {{ number_format($evento->price, 2, ',', '.') }}</span>
+                                @else
+                                    R$ {{ number_format($evento->price, 2, ',', '.') }}
+                                @endif
+                            @else
+                                Gratuito
+                            @endif
+                        </p>
+                        @php    
+                            $responsavel = App\Models\User::findOrFail($evento->responsible);
+                        @endphp 
+                        <p class="text-gray-600 mb-2">
+                            Responsável: {{$responsavel->name ?? 'Não informado';}}
                         </p>
                         <div class="flex justify-between items-center flex-wrap gap-2">
                             <div>

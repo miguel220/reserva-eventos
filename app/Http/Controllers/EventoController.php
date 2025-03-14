@@ -1,10 +1,14 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Mail\ChurchPaymentEmail;
+use App\Mail\ResponsibleNotificationEmail;
 use Illuminate\Http\Request;
 use App\Models\Evento;
 use App\Models\EventoDia;
 use App\Models\Presenca;
+use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Mail;
 
 class EventoController extends Controller
 {
@@ -38,6 +42,10 @@ class EventoController extends Controller
             'dias.*.hora_fim' => 'required|after:dias.*.hora_inicio',
             'is_paid' => 'required|boolean',
             'price' => 'required_if:is_paid,1|nullable|numeric|min:0',
+            'promo_price' => 'nullable|numeric|min:0|lt:price',
+            'promo_start_date' => 'nullable|date|required_with:promo_price',
+            'promo_end_date' => 'nullable|date|after:promo_start_date|required_with:promo_price',
+            'responsible' => 'nullable|exists:users,id', // Validação para ID de usuário
         ]);
 
         $imagemPath = $request->hasFile('imagem') ? $request->file('imagem')->store('eventos', 'public') : null;
@@ -50,6 +58,10 @@ class EventoController extends Controller
             'token' => \Str::random(32),
             'is_paid' => $request->is_paid,
             'price' => $request->is_paid ? $request->price : null,
+            'promo_price' => $request->promo_price,
+            'promo_start_date' => $request->promo_start_date,
+            'promo_end_date' => $request->promo_end_date,
+            'responsible' => $request->responsible,
         ]);
 
         foreach ($request->dias as $dia) {
@@ -83,6 +95,10 @@ class EventoController extends Controller
             'dias.*.hora_fim' => 'required|after:dias.*.hora_inicio',
             'is_paid' => 'required|boolean',
             'price' => 'required_if:is_paid,1|nullable|numeric|min:0',
+            'promo_price' => 'nullable|numeric|min:0|lt:price',
+            'promo_start_date' => 'nullable|date|required_with:promo_price',
+            'promo_end_date' => 'nullable|date|after:promo_start_date|required_with:promo_price',
+            'responsible' => 'nullable|exists:users,id',
         ]);
 
         if ($request->hasFile('imagem')) {
@@ -102,6 +118,10 @@ class EventoController extends Controller
             'token' => $evento->token ?? \Str::random(32),
             'is_paid' => $request->is_paid,
             'price' => $request->is_paid ? $request->price : null,
+            'promo_price' => $request->promo_price,
+            'promo_start_date' => $request->promo_start_date,
+            'promo_end_date' => $request->promo_end_date,
+            'responsible' => $request->responsible,
         ]);
 
         $evento->dias()->delete();
@@ -127,23 +147,37 @@ class EventoController extends Controller
 
     public function storePresenca(Request $request, Evento $evento, $token)
     {
-        if ($evento->token !== $token || $evento->trashed()) {
-            abort(403, 'Link de confirmação inválido ou evento não encontrado.');
-        }
-
+        
         $request->validate([
             'nome' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:presencas,email',
+            'email' => 'required|email|unique:presencas,email|max:255',
+            'equipe_id' => 'required|exists:equipes,id', // Adicionado
         ]);
-
-        Presenca::create([
-            'evento_id' => $evento->id,
+        
+        $presenca = Presenca::create([
             'nome' => $request->nome,
             'email' => $request->email,
+            'contact_number' => $request->contact_number ?? null,
+            'equipe_id' => $request->equipe_id, // Associar equipe
+            'evento_id' => $evento->id,
             'confirmado' => true,
+            'created_at' => now(),
         ]);
 
-        return redirect()->back()->with('success', 'Presença confirmada com sucesso!');
+        // Enviar e-mail para o participante
+        Mail::to($request->email)->send(new ChurchPaymentEmail($evento, $request->nome, $evento->responsibleUser->name ?? 'Não Informado', $evento->responsibleUser->phone_number ?? 'Não Informado'));
+
+        // Enviar e-mail para o responsável
+        if ($evento->responsible) {
+            Mail::to($evento->responsibleUser->email)->send(new ResponsibleNotificationEmail(
+                $evento,
+                $request->nome,
+                $request->email,
+                $request->contact_number
+            ));
+        }
+
+        return redirect()->back()->with('success', 'Presença confirmada! Um e-mail com as instruções de pagamento na igreja foi enviado para ' . $request->email);
     }
 }
 

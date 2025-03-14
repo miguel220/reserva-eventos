@@ -25,6 +25,13 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        //
+        Gate::define('ver-escalas', function ($user) {
+            // Supondo que o usuário tenha um atributo 'producao' que retorna true/false
+            return $user->is_producer === true;
+        });
+        Gate::define('ver-eventos', function ($user) {
+            // Supondo que o usuário tenha um atributo 'producao' que retorna true/false
+            return $user->is_admin === true;
+        });
     }
 }

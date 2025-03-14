@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.app-login')
 
 @section('content')
 <div class="min-h-screen flex items-center justify-center bg-gray-100">
@@ -63,7 +63,6 @@
                         >
                     </div>
                 </div>
-                <h2 class="text-2xl font-bold mb-6 text-center text-gray-800 text-red-500">TESTESTAASDFASDFASDF</h2>
                 <!-- Botão de Envio -->
                 <div class="flex justify-center md:justify-start md:pl-1/3">
                     <button 

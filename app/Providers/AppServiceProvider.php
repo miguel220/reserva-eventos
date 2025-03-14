@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,6 +24,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        Schema::defaultStringLength(191);
+
+        // Adicionar hint paths para os componentes de e-mail
+        $this->app['view']->addNamespace('mail', resource_path('views/vendor/mail'));
+        $this->app['view']->addNamespace('mail', base_path('vendor/laravel/mail/src/views'));
     }
 }

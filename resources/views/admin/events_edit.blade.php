@@ -4,10 +4,6 @@
 <div class="p-6">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-semibold">Editar Evento</h1>
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-            <button type="submit" class="text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-red-300 font-medium rounded-full text-sm px-5 py-2.5 text-center me-2 mb-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900">Sair</button>
-        </form>
     </div>
 
     <div class="bg-white shadow-md rounded-lg p-6 mb-6">
@@ -84,7 +80,7 @@
                     class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 @error('is_paid') border-red-500 @enderror" 
                     name="is_paid" 
                     required 
-                    onchange="togglePriceField(this)"
+                    onchange="togglePriceFields(this)"
                 >
                     <option value="0" {{ old('is_paid', $evento->is_paid) == 0 ? 'selected' : '' }}>Gratuito</option>
                     <option value="1" {{ old('is_paid', $evento->is_paid) == 1 ? 'selected' : '' }}>Pago</option>
@@ -94,19 +90,84 @@
                 @enderror
             </div>
 
-            <div class="mb-4" id="price_field" style="display: {{ old('is_paid', $evento->is_paid) == 1 ? 'block' : 'none' }};">
-                <label for="price" class="block text-gray-700 text-sm font-bold mb-2">Preço (R$)</label>
-                <input 
-                    id="price" 
-                    type="number" 
-                    step="0.01" 
-                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 @error('price') border-red-500 @enderror" 
-                    name="price" 
-                    value="{{ old('price', $evento->price) }}" 
-                    min="0" 
-                    {{ old('is_paid', $evento->is_paid) == 1 ? 'required' : '' }}
+            <div id="price_fields" style="display: {{ old('is_paid', $evento->is_paid) == 1 ? 'block' : 'none' }};">
+                <div class="mb-4">
+                    <label for="price" class="block text-gray-700 text-sm font-bold mb-2">Preço Normal (R$)</label>
+                    <input 
+                        id="price" 
+                        type="number" 
+                        step="0.01" 
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 @error('price') border-red-500 @enderror" 
+                        name="price" 
+                        value="{{ old('price', $evento->price) }}" 
+                        min="0" 
+                        {{ old('is_paid', $evento->is_paid) == 1 ? 'required' : '' }}
+                    >
+                    @error('price')
+                        <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <div class="mb-4">
+                    <label for="promo_price" class="block text-gray-700 text-sm font-bold mb-2">Preço Promocional (R$)</label>
+                    <input 
+                        id="promo_price" 
+                        type="number" 
+                        step="0.01" 
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 @error('promo_price') border-red-500 @enderror" 
+                        name="promo_price" 
+                        value="{{ old('promo_price', $evento->promo_price) }}" 
+                        min="0" 
+                    >
+                    @error('promo_price')
+                        <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <div class="mb-4">
+                    <label for="promo_start_date" class="block text-gray-700 text-sm font-bold mb-2">Início da Promoção</label>
+                    <input 
+                        id="promo_start_date" 
+                        type="datetime-local" 
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 @error('promo_start_date') border-red-500 @enderror" 
+                        name="promo_start_date" 
+                        value="{{ old('promo_start_date', $evento->promo_start_date ? $evento->promo_start_date->format('Y-m-d\TH:i') : '') }}" 
+                    >
+                    @error('promo_start_date')
+                        <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <div class="mb-4">
+                    <label for="promo_end_date" class="block text-gray-700 text-sm font-bold mb-2">Fim da Promoção</label>
+                    <input 
+                        id="promo_end_date" 
+                        type="datetime-local" 
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 @error('promo_end_date') border-red-500 @enderror" 
+                        name="promo_end_date" 
+                        value="{{ old('promo_end_date', $evento->promo_end_date ? $evento->promo_end_date->format('Y-m-d\TH:i') : '') }}" 
+                    >
+                    @error('promo_end_date')
+                        <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span>
+                    @enderror
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="responsible" class="block text-gray-700 text-sm font-bold mb-2">Responsável do Evento</label>
+                <select 
+                    id="responsible" 
+                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 @error('responsible') border-red-500 @enderror" 
+                    name="responsible" 
                 >
-                @error('price')
+                    <option value="">Selecione um responsável</option>
+                    @foreach (App\Models\User::whereNull('deleted_at')->get() as $user)
+                        <option value="{{ $user->id }}" {{ old('responsible', $evento->responsible) == $user->id ? 'selected' : '' }}>
+                            {{ $user->name }} ({{ $user->phone_number ?? 'Sem telefone' }})
+                        </option>
+                    @endforeach
+                </select>
+                @error('responsible')
                     <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span>
                 @enderror
             </div>
@@ -188,16 +249,19 @@
 <script>
     let diaCount = {{ $evento->dias->count() }};
 
-    function togglePriceField(select) {
-        const priceField = document.getElementById('price_field');
+    function togglePriceFields(select) {
+        const priceFields = document.getElementById('price_fields');
         const priceInput = document.getElementById('price');
         if (select.value == '1') {
-            priceField.style.display = 'block';
+            priceFields.style.display = 'block';
             priceInput.required = true;
         } else {
-            priceField.style.display = 'none';
+            priceFields.style.display = 'none';
             priceInput.required = false;
             priceInput.value = '';
+            document.getElementById('promo_price').value = '';
+            document.getElementById('promo_start_date').value = '';
+            document.getElementById('promo_end_date').value = '';
         }
     }
 
